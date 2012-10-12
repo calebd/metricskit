@@ -288,7 +288,6 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
                                MetricsKitAppToken,
                                [self deviceIdentifier],
                                item];
-            NSLog(@"%@", query);
             
             // get the request url
             NSString *requestURLString = [NSString stringWithFormat:
