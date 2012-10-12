@@ -135,8 +135,11 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
         
         // app version
         {
-            NSString *version = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
-            [dictionary setObject:version forKey:@"_app_version"];
+            NSDictionary *infoDictionary = [[NSBundle mainBundle] infoDictionary];
+            NSString *versionString = [infoDictionary objectForKey:@"CFBundleShortVersionString"];
+            NSString *version = [infoDictionary objectForKey:@"CFBundleVersion"];
+            if (versionString) { [dictionary setObject:versionString forKey:@"_app_version"]; }
+            else { [dictionary setObject:version forKey:@"_app_version"]; }
         }
         
         // operating system version
