@@ -119,6 +119,7 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
     static dispatch_once_t token;
     dispatch_once(&token, ^{
         NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+        [dictionary setObject:@"iOS" forKey:@"_os"];
         
         // device type
         {
