@@ -304,16 +304,35 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
             NSError *error = nil;
             NSHTTPURLResponse *response = nil;
             NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:requestURL];
-            [NSURLConnection sendSynchronousRequest:request returningResponse:&response error:&error];
             
-            // check status
-            NSInteger status = [response statusCode];
-            if (status == 200) {
-                [[NSFileManager defaultManager] removeItemAtURL:itemURL error:nil];
-            }
-            else {
-                NSLog(@"[MetricsKit] %ld", (long)[response statusCode]);
-            }
+            //we need to send it async
+            NSOperationQueue *queue = [[NSOperationQueue alloc] init];
+            [NSURLConnection sendAsynchronousRequest:request
+                                               queue:queue
+                                   completionHandler:
+             ^(NSURLResponse *res, NSData *data, NSError *err) {
+                 // got response
+                 
+                 if ([res isKindOfClass:[NSHTTPURLResponse class]])
+                 {
+                     //result is NSHTTPURLResponse so we have statusCode
+                     NSHTTPURLResponse *response = (NSHTTPURLResponse*)res;
+                     // check status
+                     NSInteger status = [response statusCode];
+                     if (status == 200) {
+                         [[NSFileManager defaultManager] removeItemAtURL:itemURL error:nil];
+                     }
+                     else {
+                         NSLog(@"[MetricsKit] %ld", (long)[response statusCode]);
+                     }
+                 }
+                 else
+                 {
+                     //result is not NSHTTPURLResponse. Likely error
+                     NSLog(@"[MetricsKit] Got non-HTTP Response!.Error is %@",[err description] );
+                     return;
+                 }
+             }];
             
         }
     }];
