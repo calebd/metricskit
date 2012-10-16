@@ -13,6 +13,12 @@
 
 #import "MetricsKit.h"
 
+#if DEBUG
+#define MKLog(fmt, args...) NSLog(@"[MetricsKit] " fmt, ##args)
+#else
+#define MKLog(fmt, args...)
+#endif
+
 // constant strings
 static NSString * const MetricsKitDeviceIdentifierFileName = @"device_identifier";
 static NSString * const MetricsKitVersion = @"1.0";
@@ -285,6 +291,7 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
             
             // get item
             NSString *item = [NSString stringWithContentsOfURL:itemURL encoding:NSUTF8StringEncoding error:nil];
+            MKLog(@"Starting upload of item: %@", item);
             
             // build query parameters
             NSString *query = [NSString stringWithFormat:
@@ -310,9 +317,13 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
             NSInteger status = [response statusCode];
             if (status == 200) {
                 [[NSFileManager defaultManager] removeItemAtURL:itemURL error:nil];
+                MKLog(@"-- Upload finished.");
             }
             else {
-                NSLog(@"[MetricsKit] %ld", (long)[response statusCode]);
+                MKLog(@"-- Upload failed.\nError: %@\nResponse:%@\nStatus code:%ld",
+                      error,
+                      response,
+                      (long)[response statusCode]);
             }
             
         }
