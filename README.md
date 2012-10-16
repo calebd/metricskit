@@ -6,6 +6,7 @@ Clean Objective-C SDK for [Count.ly](http://count.ly).
 - Aware of network reachability
 - Simple public API
 - Compiles with ARC
+- Saves event payloads on disk until they are successfully posted
 
 ## Application Launch
 
