@@ -16,14 +16,8 @@
 		3B443F8715BCC30C00664486 /* MainStoryboard.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3B443F8515BCC30C00664486 /* MainStoryboard.storyboard */; };
 		3B443F8A15BCC30C00664486 /* MKSViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 3B443F8915BCC30C00664486 /* MKSViewController.m */; };
 		3B443FB115BCC4AF00664486 /* MetricsKit.m in Sources */ = {isa = PBXBuildFile; fileRef = 3B443FB015BCC4AF00664486 /* MetricsKit.m */; };
-		3B52A91515C225E60045E043 /* SenTestingKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B443F9115BCC30C00664486 /* SenTestingKit.framework */; };
-		3B52A91615C225E60045E043 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B443F7315BCC30C00664486 /* UIKit.framework */; };
-		3B52A91715C225E60045E043 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B443F7515BCC30C00664486 /* Foundation.framework */; };
-		3B52A91D15C225E60045E043 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 3B52A91B15C225E60045E043 /* InfoPlist.strings */; };
-		3B52A92015C225E60045E043 /* MetricsKitTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 3B52A91F15C225E60045E043 /* MetricsKitTests.m */; };
 		3BAACBB015BE2462002271DE /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BAACBAF15BE2462002271DE /* SystemConfiguration.framework */; };
 		3BC1EFF216265E0A0089B5AA /* CoreTelephony.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BC1EFF116265E0A0089B5AA /* CoreTelephony.framework */; };
-		3BD847BA15C230BE00798277 /* MetricsKit.m in Sources */ = {isa = PBXBuildFile; fileRef = 3B443FB015BCC4AF00664486 /* MetricsKit.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,12 +38,6 @@
 		3B443FAD15BCC42500664486 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = text; name = README.md; path = ../README.md; sourceTree = "<group>"; };
 		3B443FAF15BCC4AF00664486 /* MetricsKit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MetricsKit.h; sourceTree = "<group>"; };
 		3B443FB015BCC4AF00664486 /* MetricsKit.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MetricsKit.m; sourceTree = "<group>"; };
-		3B52A91415C225E60045E043 /* iOS Unit Tests.octest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "iOS Unit Tests.octest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		3B52A91A15C225E60045E043 /* MetricsKitTests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "MetricsKitTests-Info.plist"; sourceTree = "<group>"; };
-		3B52A91C15C225E60045E043 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		3B52A91E15C225E60045E043 /* MetricsKitTests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MetricsKitTests.h; sourceTree = "<group>"; };
-		3B52A91F15C225E60045E043 /* MetricsKitTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MetricsKitTests.m; sourceTree = "<group>"; };
-		3B52A92115C225E60045E043 /* MetricsKitTests-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "MetricsKitTests-Prefix.pch"; sourceTree = "<group>"; };
 		3B52A92715C2277C0045E043 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
 		3B52A92915C227820045E043 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		3B52A92B15C2278A0045E043 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk/System/Library/Frameworks/AppKit.framework; sourceTree = DEVELOPER_DIR; };
@@ -71,16 +59,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		3B52A91015C225E60045E043 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				3B52A91515C225E60045E043 /* SenTestingKit.framework in Frameworks */,
-				3B52A91615C225E60045E043 /* UIKit.framework in Frameworks */,
-				3B52A91715C225E60045E043 /* Foundation.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -90,7 +68,6 @@
 				3B443FAD15BCC42500664486 /* README.md */,
 				3B443FAE15BCC46600664486 /* MetricsKit */,
 				3B443F7915BCC30C00664486 /* iOS Sample App */,
-				3B52A91815C225E60045E043 /* iOS Tests */,
 				3B443F7215BCC30B00664486 /* Frameworks */,
 				3B443F7015BCC30B00664486 /* Products */,
 			);
@@ -100,7 +77,6 @@
 			isa = PBXGroup;
 			children = (
 				3B443F6F15BCC30B00664486 /* MKSample.app */,
-				3B52A91415C225E60045E043 /* iOS Unit Tests.octest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -157,27 +133,6 @@
 			path = ../MetricsKit;
 			sourceTree = "<group>";
 		};
-		3B52A91815C225E60045E043 /* iOS Tests */ = {
-			isa = PBXGroup;
-			children = (
-				3B52A91E15C225E60045E043 /* MetricsKitTests.h */,
-				3B52A91F15C225E60045E043 /* MetricsKitTests.m */,
-				3B52A91915C225E60045E043 /* Supporting Files */,
-			);
-			name = "iOS Tests";
-			path = "MetricsKitTests-iOS";
-			sourceTree = "<group>";
-		};
-		3B52A91915C225E60045E043 /* Supporting Files */ = {
-			isa = PBXGroup;
-			children = (
-				3B52A91A15C225E60045E043 /* MetricsKitTests-Info.plist */,
-				3B52A91B15C225E60045E043 /* InfoPlist.strings */,
-				3B52A92115C225E60045E043 /* MetricsKitTests-Prefix.pch */,
-			);
-			name = "Supporting Files";
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -197,24 +152,6 @@
 			productName = MetricsKitSample;
 			productReference = 3B443F6F15BCC30B00664486 /* MKSample.app */;
 			productType = "com.apple.product-type.application";
-		};
-		3B52A91315C225E60045E043 /* iOS Unit Tests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 3B52A92215C225E60045E043 /* Build configuration list for PBXNativeTarget "iOS Unit Tests" */;
-			buildPhases = (
-				3B52A90F15C225E60045E043 /* Sources */,
-				3B52A91015C225E60045E043 /* Frameworks */,
-				3B52A91115C225E60045E043 /* Resources */,
-				3B52A91215C225E60045E043 /* ShellScript */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = "iOS Unit Tests";
-			productName = MetricsKitTests;
-			productReference = 3B52A91415C225E60045E043 /* iOS Unit Tests.octest */;
-			productType = "com.apple.product-type.bundle";
 		};
 /* End PBXNativeTarget section */
 
@@ -239,7 +176,6 @@
 			projectRoot = "";
 			targets = (
 				3B443F6E15BCC30B00664486 /* iOS Sample App */,
-				3B52A91315C225E60045E043 /* iOS Unit Tests */,
 			);
 		};
 /* End PBXProject section */
@@ -254,31 +190,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		3B52A91115C225E60045E043 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				3B52A91D15C225E60045E043 /* InfoPlist.strings in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXResourcesBuildPhase section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		3B52A91215C225E60045E043 /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# Run the unit tests in this test bundle.\n\"${SYSTEM_DEVELOPER_DIR}/Tools/RunUnitTests\"\n";
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		3B443F6B15BCC30B00664486 /* Sources */ = {
@@ -289,15 +201,6 @@
 				3B443F8415BCC30C00664486 /* MKSAppDelegate.m in Sources */,
 				3B443F8A15BCC30C00664486 /* MKSViewController.m in Sources */,
 				3B443FB115BCC4AF00664486 /* MetricsKit.m in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		3B52A90F15C225E60045E043 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				3B52A92015C225E60045E043 /* MetricsKitTests.m in Sources */,
-				3BD847BA15C230BE00798277 /* MetricsKit.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -318,14 +221,6 @@
 				3B443F8615BCC30C00664486 /* en */,
 			);
 			name = MainStoryboard.storyboard;
-			sourceTree = "<group>";
-		};
-		3B52A91B15C225E60045E043 /* InfoPlist.strings */ = {
-			isa = PBXVariantGroup;
-			children = (
-				3B52A91C15C225E60045E043 /* en */,
-			);
-			name = InfoPlist.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
@@ -405,30 +300,6 @@
 			};
 			name = Release;
 		};
-		3B52A92315C225E60045E043 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "MetricsKitTests-iOS/MetricsKitTests-Prefix.pch";
-				INFOPLIST_FILE = "MetricsKitTests-iOS/MetricsKitTests-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				WRAPPER_EXTENSION = octest;
-			};
-			name = Debug;
-		};
-		3B52A92415C225E60045E043 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "MetricsKitTests-iOS/MetricsKitTests-Prefix.pch";
-				INFOPLIST_FILE = "MetricsKitTests-iOS/MetricsKitTests-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				WRAPPER_EXTENSION = octest;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -446,15 +317,6 @@
 			buildConfigurations = (
 				3B443FA315BCC30C00664486 /* Debug */,
 				3B443FA415BCC30C00664486 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		3B52A92215C225E60045E043 /* Build configuration list for PBXNativeTarget "iOS Unit Tests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				3B52A92315C225E60045E043 /* Debug */,
-				3B52A92415C225E60045E043 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
