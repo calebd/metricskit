@@ -172,12 +172,9 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
         
         // resolution
         {
-            UIScreen *screen = [UIScreen mainScreen];
-            CGRect bounds = screen.bounds;
-            CGFloat scale = screen.scale;
-            CGSize resolution = CGSizeMake(bounds.size.width * scale, bounds.size.height * scale);
-            NSString *result = [NSString stringWithFormat:@"%gx%g", resolution.width, resolution.height];
-            [dictionary setObject:result forKey:@"_resolution"];
+            CGRect bounds = [[UIScreen mainScreen] bounds];
+            NSString *resolution = [NSString stringWithFormat:@"%gx%g", bounds.size.width, bounds.size.height];
+            [dictionary setObject:resolution forKey:@"_resolution"];
         }
         
         metrics = dictionary;
