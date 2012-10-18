@@ -192,16 +192,14 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
         NSAssert(MetricsKitURLHost, @"A MetricsKit host must be provided.");
         NSAssert(MetricsKitAppToken, @"A MetricsKit app token must be provided.");
         
-        // start session
+        // get session
         [MetricsKitSession sharedSession];
         
         // reachability
-        {
-            SCNetworkReachabilityRef reachability = NULL;
-            if ((reachability = SCNetworkReachabilityCreateWithName(kCFAllocatorDefault, [MetricsKitURLHost UTF8String]))) {
-                if (SCNetworkReachabilitySetCallback(reachability, MetricsKitReachabilityDidChange, NULL)) {
-                    SCNetworkReachabilityScheduleWithRunLoop(reachability, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
-                }
+        SCNetworkReachabilityRef reachability = NULL;
+        if ((reachability = SCNetworkReachabilityCreateWithName(kCFAllocatorDefault, [MetricsKitURLHost UTF8String]))) {
+            if (SCNetworkReachabilitySetCallback(reachability, MetricsKitReachabilityDidChange, NULL)) {
+                SCNetworkReachabilityScheduleWithRunLoop(reachability, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
             }
         }
         
