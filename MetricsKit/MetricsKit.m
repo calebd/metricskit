@@ -20,7 +20,6 @@
 #endif
 
 // constant strings
-static NSString * const MetricsKitDeviceIdentifierFileName = @"device_identifier";
 static NSString * const MetricsKitVersion = @"1.0";
 
 // static variables
@@ -81,17 +80,14 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
     static NSString *identifier = nil;
     static dispatch_once_t token;
     dispatch_once(&token, ^{
-        NSFileManager *manager = [NSFileManager defaultManager];
-        NSURL *URL = [[self URLForDataDirectory] URLByAppendingPathComponent:MetricsKitDeviceIdentifierFileName];
-        if ([manager fileExistsAtPath:[URL path]]) {
-            identifier = [NSString stringWithContentsOfURL:URL encoding:NSUTF8StringEncoding error:nil];
-        }
-        else {
+        NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+        static NSString * const key = @"me.dvnprt.caleb.metricskit.device-identifier";
+        identifier = [defaults objectForKey:key];
+        if (identifier == nil) {
             CFUUIDRef UUIDRef = CFUUIDCreate(kCFAllocatorDefault);
-            NSString *UUID = (__bridge NSString *)CFUUIDCreateString(kCFAllocatorDefault, UUIDRef);
+            identifier = (__bridge_transfer NSString *)CFUUIDCreateString(kCFAllocatorDefault, UUIDRef);
             CFRelease(UUIDRef);
-            [UUID writeToURL:URL atomically:YES encoding:NSUTF8StringEncoding error:nil];
-            identifier = UUID;
+            [defaults setObject:identifier forKey:key];
         }
     });
     return identifier;
@@ -334,7 +330,6 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
                       options:NSDirectoryEnumerationSkipsHiddenFiles
                       error:nil];
     [array enumerateObjectsUsingBlock:^(NSURL *URL, NSUInteger idx, BOOL *stop) {
-        if ([[URL lastPathComponent] isEqualToString:MetricsKitDeviceIdentifierFileName]) { return; }
         [self uploadItemAtURL:URL];
     }];
 }
