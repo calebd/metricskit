@@ -23,9 +23,8 @@
 static NSString * const MetricsKitVersion = @"1.0";
 
 // static variables
-static NSString * MetricsKitURLHost = nil;
-static NSString * MetricsKitAppToken = nil;
 static int MetricsKitOperationCountContext = 0;
+static id __session = nil;
 
 // reachability resources
 enum {
@@ -34,26 +33,22 @@ enum {
     MetricsKitReachabilityStatusReachableViaWWAN
 };
 typedef NSUInteger MetricsKitReachabilityStatus;
-static SCNetworkReachabilityFlags _reachabilityFlags = 0;
 void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNetworkReachabilityFlags flags, void *info);
 
-#pragma mark - private interfaces
-
 @interface NSString (MetricsKitAdditions)
-
 - (NSString *)mk_percentEncodedString;
-
 @end
 
 @interface MetricsKitSession : NSObject
-
-+ (MetricsKitSession *)sharedSession;
-
+@property (atomic, assign) SCNetworkReachabilityFlags reachabilityFlags;
+@property (nonatomic, readonly) MetricsKitReachabilityStatus reachabilityStatus;
+@property (nonatomic, readonly, getter = isReachable) BOOL reachable;
+- (id)initWithAppKey:(NSString *)key host:(NSString *)host;
+- (void)logEvent:(NSString *)key segmentation:(NSDictionary *)segmentation count:(NSNumber *)count sum:(NSNumber *)sum;
+- (void)uploadItemAtURL:(NSURL *)itemURL;
 @end
 
 @implementation MetricsKit
-
-#pragma mark - class methods
 
 + (NSURL *)URLForDataDirectory {
     static NSURL *URL = nil;
@@ -76,6 +71,7 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
     return URL;
 }
 
+
 + (NSString *)deviceIdentifier {
     static NSString *identifier = nil;
     static dispatch_once_t token;
@@ -93,6 +89,7 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
     return identifier;
 }
 
+
 + (NSString *)queryStringFromParameters:(NSDictionary *)parameters {
     NSMutableArray *array = [NSMutableArray arrayWithCapacity:[parameters count]];
     [parameters enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
@@ -105,6 +102,7 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
     return [array componentsJoinedByString:@"&"];
 }
 
+
 + (NSOperationQueue *)sharedOperationQueue {
     static NSOperationQueue *queue = nil;
     static dispatch_once_t token;
@@ -115,6 +113,7 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
     });
     return queue;
 }
+
 
 + (NSDictionary *)deviceMetrics {
     static NSDictionary *metrics = nil;
@@ -178,107 +177,232 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
     return metrics;
 }
 
+
 + (void)startWithAppKey:(NSString *)key host:(NSString *)host {
     static dispatch_once_t token;
     dispatch_once(&token, ^{
-        
-        // save options
-        MetricsKitURLHost = [host copy];
-        MetricsKitAppToken = [key copy];
-        NSAssert(MetricsKitURLHost, @"A MetricsKit host must be provided.");
-        NSAssert(MetricsKitAppToken, @"A MetricsKit app token must be provided.");
-        
-        // get session
-        [MetricsKitSession sharedSession];
-        
-        // reachability
-        SCNetworkReachabilityRef reachability = NULL;
-        if ((reachability = SCNetworkReachabilityCreateWithName(kCFAllocatorDefault, [MetricsKitURLHost UTF8String]))) {
-            if (SCNetworkReachabilitySetCallback(reachability, MetricsKitReachabilityDidChange, NULL)) {
-                SCNetworkReachabilityScheduleWithRunLoop(reachability, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
-            }
-        }
-        
+        __session = [[MetricsKitSession alloc] initWithAppKey:key host:host];
     });
 }
 
-#pragma mark - log data
 
 + (void)logEvent:(NSString *)key count:(int)count {
     [self logEvent:key segmentation:nil count:count];
 }
 
+
 + (void)logEvent:(NSString *)key count:(int)count sum:(double)sum {
     [self logEvent:key segmentation:nil count:count sum:sum];
 }
 
+
 + (void)logEvent:(NSString *)key segmentation:(NSDictionary *)segmentation count:(int)count {
-    NSMutableDictionary *payload = [NSMutableDictionary dictionaryWithCapacity:3];
-    [payload setObject:key forKey:@"key"];
-    [payload setObject:@(count) forKey:@"count"];
-    if (segmentation) { [payload setObject:segmentation forKey:@"segmentation"]; }
-    [self logPayload:nil withJSONAttachments:@{
-         @"events" : @[ payload ]
-     }];
+    [__session logEvent:key segmentation:nil count:@(count) sum:nil];
 }
+
 
 + (void)logEvent:(NSString *)key segmentation:(NSDictionary *)segmentation count:(int)count sum:(double)sum {
-    NSMutableDictionary *payload = [NSMutableDictionary dictionaryWithCapacity:3];
-    [payload setObject:key forKey:@"key"];
-    [payload setObject:@(count) forKey:@"count"];
-    [payload setObject:@(sum) forKey:@"sum"];
-    if (segmentation) { [payload setObject:segmentation forKey:@"segmentation"]; }
-    [self logPayload:nil withJSONAttachments:@{
-         @"events" : @[ payload ]
+    [__session logEvent:key segmentation:nil count:@(count) sum:@(sum)];
+}
+
+
+@end
+
+@implementation MetricsKitSession {
+    NSString *_host;
+    NSString *_appKey;
+    NSTimer *_timer;
+    UIBackgroundTaskIdentifier _task;
+    SCNetworkReachabilityRef _reachability;
+    NSMutableArray *_events;
+}
+
+#pragma mark - Instance methods
+
+- (id)initWithAppKey:(NSString *)key host:(NSString *)host {
+    NSParameterAssert(key != nil);
+    NSParameterAssert(host != nil);
+    if ((self = [super init])) {
+        
+        // save stuff
+        _events = [NSMutableArray array];
+        _appKey = [key copy];
+        _host = [host copy];
+        _task = UIBackgroundTaskInvalid;
+        _timer = [NSTimer
+                  scheduledTimerWithTimeInterval:30.0
+                  target:self
+                  selector:@selector(timerFired)
+                  userInfo:nil
+                  repeats:YES];
+        
+        // notifications
+        NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+        [center
+         addObserver:self
+         selector:@selector(endSession)
+         name:UIApplicationDidEnterBackgroundNotification
+         object:nil];
+        [center
+         addObserver:self
+         selector:@selector(startSession)
+         name:UIApplicationWillEnterForegroundNotification
+         object:nil];
+        
+        // kvo
+        [[MetricsKit sharedOperationQueue]
+         addObserver:self
+         forKeyPath:@"operationCount"
+         options:(NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld)
+         context:&MetricsKitOperationCountContext];
+        
+        // reachability
+        if ((_reachability = SCNetworkReachabilityCreateWithName(kCFAllocatorDefault, [_host UTF8String]))) {
+            if (SCNetworkReachabilitySetCallback(_reachability, MetricsKitReachabilityDidChange, (__bridge void *)self)) {
+                SCNetworkReachabilityScheduleWithRunLoop(_reachability, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
+            }
+        }
+        
+        // start
+        [self startSession];
+        
+    }
+    return self;
+}
+
+
+- (void)dealloc {
+    
+    // notifications
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    
+    // kvo
+    [[MetricsKit sharedOperationQueue]
+     removeObserver:self
+     forKeyPath:@"operationCount"
+     context:&MetricsKitOperationCountContext];
+    
+    // reachability
+    SCNetworkReachabilityUnscheduleFromRunLoop(_reachability, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
+    SCNetworkReachabilitySetCallback(_reachability, NULL, (__bridge void *)self);
+    CFRelease(_reachability);
+    
+    // timer
+    [_timer invalidate];
+    
+}
+
+
+- (void)timerFired {
+    [self
+     logPayload:@{
+         @"session_duration" : @"30"
+     }
+     withJSONAttachments:nil];
+    [self logEvents];
+}
+
+
+- (void)startSession {
+    [self
+     logPayload:@{
+         @"sdk_version" : MetricsKitVersion,
+         @"begin_session" : @"1",
+     }
+     withJSONAttachments:@{
+         @"metrics" : [MetricsKit deviceMetrics]
      }];
 }
 
-/*
- 
- Save a new event payload to disk. The `payload` parameter will be turned into
- query parameters in the URL. It can be `nil`. `attachments` should be a
- dictionary with string keys and JSON-encodable objects.
- 
- */
-+ (void)logPayload:(NSDictionary *)payload withJSONAttachments:(NSDictionary *)attachments {
+
+- (void)endSession {
+    [self
+     logPayload:@{
+         @"end_session" : @"1"
+     }
+     withJSONAttachments:nil];
+    [self logEvents];
+}
+
+
+#pragma mark - KVO
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
+    if (context == &MetricsKitOperationCountContext) {
+        NSUInteger old = [[change objectForKey:NSKeyValueChangeOldKey] unsignedIntegerValue];
+        NSUInteger new = [[change objectForKey:NSKeyValueChangeNewKey] unsignedIntegerValue];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UIApplication *application = [UIApplication sharedApplication];
+            void (^endTask) (void) = ^{
+                UIBackgroundTaskIdentifier task = _task;
+                [application endBackgroundTask:task];
+                _task = UIBackgroundTaskInvalid;
+            };
+            if (old == 0 && new > 0 && _task == UIBackgroundTaskInvalid) {
+                [application beginBackgroundTaskWithExpirationHandler:endTask];
+            }
+            else if (old > 0 && new == 0 && _task != UIBackgroundTaskInvalid) {
+                endTask();
+            }
+        });
+    }
+}
+
+
+#pragma mark - Reachability
+
+- (MetricsKitReachabilityStatus)reachabilityStatus {
     
-    // get timestamp
-    time_t time = [[NSDate date] timeIntervalSince1970];
-    NSString *timeString = [NSString stringWithFormat:@"%ld", time];
+    // get flags
+    SCNetworkReachabilityFlags flags = self.reachabilityFlags;
     
-    // gather parameters
-    NSMutableDictionary *parameters = ([payload mutableCopy] ?: [NSMutableDictionary dictionary]);
-    [parameters setObject:timeString forKey:@"timestamp"];
-    [attachments enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
-        NSData *data = [NSJSONSerialization dataWithJSONObject:obj options:0 error:nil];
-        NSString *string = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-        if (data) { [parameters setObject:string forKey:key]; }
-    }];
-    
-    // make sure we have something
-    if ([parameters count] == 0) { return; }
-    
-    // get query string
-    NSString *queryString = [self queryStringFromParameters:parameters];
-    
-    // write data to disk
-    NSOperation *operation = [NSBlockOperation blockOperationWithBlock:^{
-        NSString *uniqueString = [[NSProcessInfo processInfo] globallyUniqueString];
-        NSURL *URL = [[self URLForDataDirectory] URLByAppendingPathComponent:uniqueString];
-        [queryString writeToURL:URL atomically:YES encoding:NSUTF8StringEncoding error:nil];
-        [self uploadItemAtURL:URL];
-    }];
-    [operation setQueuePriority:NSOperationQueuePriorityHigh];
-    [[self sharedOperationQueue] addOperation:operation];
+    // return appropriate status
+    MetricsKitReachabilityStatus status = MetricsKitReachabilityStatusNotReachable;
+    if ((flags & kSCNetworkReachabilityFlagsReachable) == 0) {
+        return status;
+    }
+    if ((flags & kSCNetworkReachabilityFlagsConnectionRequired) == 0) {
+        status = MetricsKitReachabilityStatusReachableViaWiFi;
+    }
+    if (((flags & kSCNetworkReachabilityFlagsConnectionOnDemand) != 0) ||
+        ((flags & kSCNetworkReachabilityFlagsConnectionOnTraffic) != 0)) {
+        if ((flags & kSCNetworkReachabilityFlagsInterventionRequired) == 0) {
+            status = MetricsKitReachabilityStatusReachableViaWiFi;
+        }
+    }
+    if ((flags & kSCNetworkReachabilityFlagsIsWWAN) != 0) {
+        status = MetricsKitReachabilityStatusReachableViaWWAN;
+    }
+    return status;
     
 }
 
-#pragma mark - upload items
 
-+ (void)uploadItemAtURL:(NSURL *)itemURL {
-    [[self sharedOperationQueue] addOperationWithBlock:^{
+- (BOOL)isReachable {
+    return (self.reachabilityStatus != MetricsKitReachabilityStatusNotReachable);
+}
+
+
+#pragma mark - Handle events
+
+- (void)uploadAllItems {
+    NSFileManager *manager = [NSFileManager defaultManager];
+    NSURL *directoryURL = [MetricsKit URLForDataDirectory];
+    NSArray *array = [manager
+                      contentsOfDirectoryAtURL:directoryURL
+                      includingPropertiesForKeys:nil
+                      options:NSDirectoryEnumerationSkipsHiddenFiles
+                      error:nil];
+    [array enumerateObjectsUsingBlock:^(NSURL *URL, NSUInteger idx, BOOL *stop) {
+        [self uploadItemAtURL:URL];
+    }];
+}
+
+
+- (void)uploadItemAtURL:(NSURL *)itemURL {
+    [[MetricsKit sharedOperationQueue] addOperationWithBlock:^{
         NSFileManager *manager = [NSFileManager defaultManager];
-        if ([self isReachable] && [manager fileExistsAtPath:[itemURL path]]) {
+        if (self.reachable && [manager fileExistsAtPath:[itemURL path]]) {
             
             // get item
             NSString *item = [NSString stringWithContentsOfURL:itemURL encoding:NSUTF8StringEncoding error:nil];
@@ -287,14 +411,14 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
             // build query parameters
             NSString *query = [NSString stringWithFormat:
                                @"app_key=%@&device_id=%@&%@",
-                               MetricsKitAppToken,
-                               [self deviceIdentifier],
+                               _appKey,
+                               [MetricsKit deviceIdentifier],
                                item];
             
             // get the request url
             NSString *requestURLString = [NSString stringWithFormat:
                                           @"http://%@/i?%@",
-                                          MetricsKitURLHost,
+                                          _host,
                                           query];
             NSURL *requestURL = [NSURL URLWithString:requestURLString];
             
@@ -321,63 +445,67 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
     }];
 }
 
-+ (void)uploadAllItems {
-    NSFileManager *manager = [NSFileManager defaultManager];
-    NSURL *directoryURL = [self URLForDataDirectory];
-    NSArray *array = [manager
-                      contentsOfDirectoryAtURL:directoryURL
-                      includingPropertiesForKeys:nil
-                      options:NSDirectoryEnumerationSkipsHiddenFiles
-                      error:nil];
-    [array enumerateObjectsUsingBlock:^(NSURL *URL, NSUInteger idx, BOOL *stop) {
-        [self uploadItemAtURL:URL];
+
+- (void)logEvent:(NSString *)key segmentation:(NSDictionary *)segmentation count:(NSNumber *)count sum:(NSNumber *)sum {
+    NSMutableDictionary *payload = [NSMutableDictionary dictionaryWithCapacity:3];
+    [payload setObject:key forKey:@"key"];
+    if (count) { [payload setObject:count forKey:@"count"]; }
+    if (sum) { [payload setObject:sum forKey:@"sum"]; }
+    if (segmentation) { [payload setObject:segmentation forKey:@"segmentation"]; }
+    [_events addObject:payload];
+}
+
+
+- (void)logEvents {
+    [self logPayload:nil withJSONAttachments:@{
+         @"events" : _events
+     }];
+    [_events removeAllObjects];
+}
+
+
+/*
+ 
+ Save a new event payload to disk. The `payload` parameter will be turned into
+ query parameters in the URL. It can be `nil`. `attachments` should be a
+ dictionary with string keys and JSON-encodable objects.
+ 
+ */
+- (void)logPayload:(NSDictionary *)payload withJSONAttachments:(NSDictionary *)attachments {
+    
+    // get timestamp
+    time_t time = [[NSDate date] timeIntervalSince1970];
+    NSString *timeString = [NSString stringWithFormat:@"%ld", time];
+    
+    // gather parameters
+    NSMutableDictionary *parameters = ([payload mutableCopy] ?: [NSMutableDictionary dictionary]);
+    [parameters setObject:timeString forKey:@"timestamp"];
+    [attachments enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+        NSData *data = [NSJSONSerialization dataWithJSONObject:obj options:0 error:nil];
+        NSString *string = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+        if (data) { [parameters setObject:string forKey:key]; }
     }];
-}
-
-#pragma mark - reachability helpers
-
-+ (void)setReachabilityFlags:(SCNetworkReachabilityFlags)flags {
-    @synchronized(self) {
-        _reachabilityFlags = flags;
-    }
-}
-
-+ (MetricsKitReachabilityStatus)reachabilityStatus {
     
-    // get flags
-    SCNetworkReachabilityFlags flags = 0;
-    @synchronized(self) {
-        flags = _reachabilityFlags;
-    }
+    // make sure we have something
+    if ([parameters count] == 0) { return; }
     
-    // return appropriate status
-    MetricsKitReachabilityStatus status = MetricsKitReachabilityStatusNotReachable;
-    if ((flags & kSCNetworkReachabilityFlagsReachable) == 0) {
-        return status;
-    }
-    if ((flags & kSCNetworkReachabilityFlagsConnectionRequired) == 0) {
-        status = MetricsKitReachabilityStatusReachableViaWiFi;
-    }
-    if (((flags & kSCNetworkReachabilityFlagsConnectionOnDemand) != 0) ||
-        ((flags & kSCNetworkReachabilityFlagsConnectionOnTraffic) != 0)) {
-        if ((flags & kSCNetworkReachabilityFlagsInterventionRequired) == 0) {
-            status = MetricsKitReachabilityStatusReachableViaWiFi;
-        }
-    }
-    if ((flags & kSCNetworkReachabilityFlagsIsWWAN) != 0) {
-        status = MetricsKitReachabilityStatusReachableViaWWAN;
-    }
-    return status;
+    // get query string
+    NSString *queryString = [MetricsKit queryStringFromParameters:parameters];
+    
+    // write data to disk
+    NSOperation *operation = [NSBlockOperation blockOperationWithBlock:^{
+        NSString *uniqueString = [[NSProcessInfo processInfo] globallyUniqueString];
+        NSURL *URL = [[MetricsKit URLForDataDirectory] URLByAppendingPathComponent:uniqueString];
+        [queryString writeToURL:URL atomically:YES encoding:NSUTF8StringEncoding error:nil];
+        [__session uploadItemAtURL:URL];
+    }];
+    [operation setQueuePriority:NSOperationQueuePriorityHigh];
+    [[MetricsKit sharedOperationQueue] addOperation:operation];
     
 }
 
-+ (BOOL)isReachable {
-    return ([self reachabilityStatus] != MetricsKitReachabilityStatusNotReachable);
-}
 
 @end
-
-#pragma mark - category and private implementations
 
 @implementation NSString (MetricsKitAdditions)
 
@@ -390,142 +518,13 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
     return (__bridge_transfer NSString *)string;
 }
 
-@end
-
-@implementation MetricsKitSession {
-    NSTimer *_timer;
-    UIBackgroundTaskIdentifier _task;
-}
-
-+ (MetricsKitSession *)sharedSession {
-    static MetricsKitSession *session = nil;
-    static dispatch_once_t token;
-    dispatch_once(&token, ^{
-        session = [[MetricsKitSession alloc] init];
-    });
-    return session;
-}
-
-- (id)init {
-    self = [super init];
-    if (self) {
-        
-        // kvo
-        [[MetricsKit sharedOperationQueue]
-         addObserver:self
-         forKeyPath:@"operationCount"
-         options:(NSKeyValueObservingOptionInitial | NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld)
-         context:&MetricsKitOperationCountContext];
-        
-        // task
-        _task = UIBackgroundTaskInvalid;
-        
-        // timer
-        _timer = [NSTimer
-                  scheduledTimerWithTimeInterval:30.0
-                  target:self
-                  selector:@selector(timerFired)
-                  userInfo:nil
-                  repeats:YES];
-        
-        // notifications
-        NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
-        [center
-         addObserver:self
-         selector:@selector(endSession)
-         name:UIApplicationDidEnterBackgroundNotification
-         object:nil];
-        [center
-         addObserver:self
-         selector:@selector(startSession)
-         name:UIApplicationWillEnterForegroundNotification
-         object:nil];
-        
-        // start
-        [self startSession];
-        
-    }
-    return self;
-}
-
-- (void)dealloc {
-    
-    // kvo
-    [[MetricsKit sharedOperationQueue]
-     removeObserver:self
-     forKeyPath:@"operationCount"
-     context:&MetricsKitOperationCountContext];
-    
-    // timer
-    [_timer invalidate];
-    _timer = nil;
-    
-    // notifications
-    NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
-    [center
-     removeObserver:self
-     name:UIApplicationDidEnterBackgroundNotification
-     object:nil];
-    [center
-     removeObserver:self
-     name:UIApplicationWillEnterForegroundNotification
-     object:nil];
-    
-}
-
-- (void)timerFired {
-    [MetricsKit
-     logPayload:@{
-         @"session_duration" : @"30"
-     }
-     withJSONAttachments:nil];
-}
-
-- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
-    if (context == &MetricsKitOperationCountContext) {
-        NSUInteger old = [[change objectForKey:NSKeyValueChangeOldKey] unsignedIntegerValue];
-        NSUInteger new = [[change objectForKey:NSKeyValueChangeNewKey] unsignedIntegerValue];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            UIApplication *application = [UIApplication sharedApplication];
-            void (^endTask) (void) = ^{
-                UIBackgroundTaskIdentifier task = _task;
-                [application endBackgroundTask:task];
-                _task = UIBackgroundTaskInvalid;
-            };
-            if (old == 0 && new > 0 && _task == UIBackgroundTaskInvalid) {
-                [application beginBackgroundTaskWithExpirationHandler:endTask];
-            }
-            else if (old > 0 && new == 0 && _task != UIBackgroundTaskInvalid) {
-                endTask();
-            }
-        });
-    }
-}
-
-- (void)endSession {
-    [MetricsKit
-     logPayload:@{
-         @"end_session" : @"1"
-     }
-     withJSONAttachments:nil];
-}
-
-- (void)startSession {
-    [MetricsKit
-     logPayload:@{
-         @"sdk_version" : MetricsKitVersion,
-         @"begin_session" : @"1",
-     }
-     withJSONAttachments:@{
-         @"metrics" : [MetricsKit deviceMetrics]
-     }];
-}
 
 @end
 
-#pragma mark - reachability callback
+#pragma mark - Reachability callback
 
 void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNetworkReachabilityFlags flags, void *info) {
-    [MetricsKit setReachabilityFlags:flags];
-    [MetricsKit uploadAllItems];
+    MetricsKitSession *session = (__bridge id)info;
+    session.reachabilityFlags = flags;
+    [session uploadAllItems];
 }
