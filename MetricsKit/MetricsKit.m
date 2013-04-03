@@ -283,9 +283,11 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
      context:&MetricsKitOperationCountContext];
     
     // reachability
-    SCNetworkReachabilityUnscheduleFromRunLoop(_reachability, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
-    SCNetworkReachabilitySetCallback(_reachability, NULL, (__bridge void *)self);
-    CFRelease(_reachability);
+    if (_reachability) {
+        SCNetworkReachabilityUnscheduleFromRunLoop(_reachability, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
+        SCNetworkReachabilitySetCallback(_reachability, NULL, (__bridge void *)self);
+        CFRelease(_reachability);
+    }
     
     // timer
     [_timer invalidate];
