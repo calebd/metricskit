@@ -6,7 +6,6 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
 
 @interface MetricsKit : NSObject
 
@@ -19,17 +18,11 @@
 
 /*
  
- 
+ Log events.
  
  */
 + (void)logEvent:(NSString *)key count:(int)count;
 + (void)logEvent:(NSString *)key count:(int)count sum:(double)sum;
-
-/*
- 
- 
- 
- */
 + (void)logEvent:(NSString *)key segmentation:(NSDictionary *)segmentation count:(int)count;
 + (void)logEvent:(NSString *)key segmentation:(NSDictionary *)segmentation count:(int)count sum:(double)sum;
 
