@@ -23,7 +23,7 @@ static MetricsKitSession *__session = nil;
 
 
 + (void)logEvent:(NSString *)key {
-    [__session addEvent:key segmentation:nil count:nil sum:nil];
+    [__session addEvent:key segmentation:nil count:@1 sum:nil];
 }
 
 
@@ -33,7 +33,7 @@ static MetricsKitSession *__session = nil;
 
 
 + (void)logEvent:(NSString *)key segmentation:(NSDictionary *)segmentation {
-    [__session addEvent:key segmentation:segmentation count:nil sum:nil];
+    [__session addEvent:key segmentation:segmentation count:@1 sum:nil];
 }
 
 

@@ -285,9 +285,11 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
 #pragma mark - Public
 
 - (void)addEvent:(NSString *)key segmentation:(NSDictionary *)segmentation count:(NSNumber *)count sum:(NSNumber *)sum {
+    NSParameterAssert(key);
+    NSParameterAssert(count);
     NSMutableDictionary *payload = [NSMutableDictionary dictionaryWithCapacity:3];
     payload[@"key"] = key;
-    if (count) { payload[@"count"] = count; }
+    payload[@"count"] = count;
     if (sum) { payload[@"sum"] = sum; }
     if (segmentation) { payload[@"segmentation"] = segmentation; }
     [_events addObject:payload];
