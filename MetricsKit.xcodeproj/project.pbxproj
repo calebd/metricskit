@@ -12,6 +12,7 @@
 		3B700CEC171CD54900DC4009 /* MetricsKit.m in Sources */ = {isa = PBXBuildFile; fileRef = 3B700CEB171CD54900DC4009 /* MetricsKit.m */; };
 		3B700CEF171CD55D00DC4009 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B700CEE171CD55D00DC4009 /* SystemConfiguration.framework */; };
 		3B700CF1171CD57100DC4009 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B700CF0171CD57100DC4009 /* UIKit.framework */; };
+		3B75733C171E002400852331 /* CoreTelephony.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B75733B171E002400852331 /* CoreTelephony.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -37,6 +38,7 @@
 		3B700CED171CD55000DC4009 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
 		3B700CEE171CD55D00DC4009 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		3B700CF0171CD57100DC4009 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
+		3B75733B171E002400852331 /* CoreTelephony.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreTelephony.framework; path = System/Library/Frameworks/CoreTelephony.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -44,6 +46,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3B75733C171E002400852331 /* CoreTelephony.framework in Frameworks */,
 				3B700CF1171CD57100DC4009 /* UIKit.framework in Frameworks */,
 				3B700CEF171CD55D00DC4009 /* SystemConfiguration.framework in Frameworks */,
 				3B700CDA171CD4AA00DC4009 /* Foundation.framework in Frameworks */,
@@ -56,6 +59,7 @@
 		3B700CCD171CD4AA00DC4009 = {
 			isa = PBXGroup;
 			children = (
+				3B75733B171E002400852331 /* CoreTelephony.framework */,
 				3B700CED171CD55000DC4009 /* README.md */,
 				3B700CDB171CD4AA00DC4009 /* MetricsKit */,
 				3B700CD8171CD4AA00DC4009 /* Frameworks */,

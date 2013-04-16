@@ -221,22 +221,12 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
          context:&MetricsKitOperationCountContext];
         
         // reachability
-        if ((_reachability = SCNetworkReachabilityCreateWithName(kCFAllocatorDefault, [_host UTF8String]))) {
-            if (SCNetworkReachabilitySetCallback(_reachability, MetricsKitReachabilityDidChange, (__bridge void *)self)) {
-                SCNetworkReachabilityScheduleWithRunLoop(_reachability, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
+        if ((_reachability = SCNetworkReachabilityCreateWithName(NULL, [_host UTF8String]))) {
+            SCNetworkReachabilityContext context = {0, (__bridge void *)self, NULL, NULL, NULL};
+            if (SCNetworkReachabilitySetCallback(_reachability, MetricsKitReachabilityDidChange, &context)) {
+                SCNetworkReachabilitySetDispatchQueue(_reachability, dispatch_get_main_queue());
             }
         }
-        
-        // timer
-        _timer = [NSTimer
-                  scheduledTimerWithTimeInterval:30.0
-                  target:self
-                  selector:@selector(timerFired)
-                  userInfo:nil
-                  repeats:YES];
-        
-        // start
-        [self startSession];
         
     }
     return self;
@@ -256,8 +246,8 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
     
     // reachability
     if (_reachability) {
-        SCNetworkReachabilityUnscheduleFromRunLoop(_reachability, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
-        SCNetworkReachabilitySetCallback(_reachability, NULL, (__bridge void *)self);
+        SCNetworkReachabilitySetDispatchQueue(_reachability, NULL);
+        SCNetworkReachabilitySetCallback(_reachability, NULL, NULL);
         CFRelease(_reachability);
     }
     
@@ -307,18 +297,15 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
 #pragma mark - Private
 
 - (void)persistAllEvents {
-    [self logPayload:nil withJSONAttachments:@{ @"events" : _events }];
+    [self logPayload:nil withJSONAttachments:@{ @"events" : [_events copy] }];
     [_events removeAllObjects];
 }
 
 
 - (void)timerFired {
-    [self
-     logPayload:@{
-         @"session_duration" : @"30"
-     }
-     withJSONAttachments:nil];
-//    [self logEvents];
+    [self logPayload:@{ @"session_duration" : @"30" } withJSONAttachments:nil];
+    [self persistAllEvents];
+    [self uploadAllItems];
 }
 
 
@@ -331,16 +318,21 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
      withJSONAttachments:@{
          @"metrics" : [[self class] deviceMetrics]
      }];
-//    [self logEvents];
+    [self uploadAllItems];
+    _timer = [NSTimer
+              scheduledTimerWithTimeInterval:30.0
+              target:self
+              selector:@selector(timerFired)
+              userInfo:nil
+              repeats:YES];
 }
 
 
 - (void)endSession {
-    [self
-     logPayload:@{
-         @"end_session" : @"1"
-     }
-     withJSONAttachments:nil];
+    [self logPayload:@{ @"end_session" : @"1" } withJSONAttachments:nil];
+    [self persistAllEvents];
+    [_timer invalidate];
+    _timer = nil;
 }
 
 
@@ -350,29 +342,30 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
     time_t time = [[NSDate date] timeIntervalSince1970];
     NSString *timeString = [NSString stringWithFormat:@"%ld", time];
     
-    // gather parameters
-    NSMutableDictionary *parameters = ([payload mutableCopy] ?: [NSMutableDictionary dictionary]);
-    [parameters setObject:timeString forKey:@"timestamp"];
-    [attachments enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
-        NSData *data = [NSJSONSerialization dataWithJSONObject:obj options:0 error:nil];
-        NSString *string = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-        if (data) { [parameters setObject:string forKey:key]; }
-    }];
-    
-    // make sure we have something
-    if ([parameters count] == 0) { return; }
-    
-    // write data to disk
+    // build payload and write to disk
     NSOperation *operation = [NSBlockOperation blockOperationWithBlock:^{
-        NSJSONWritingOptions options = 0;
-#if DEBUG
-        options = NSJSONWritingPrettyPrinted;
-#endif
-        NSData *data = [NSJSONSerialization dataWithJSONObject:parameters options:options error:nil];
-        NSString *string = [[NSProcessInfo processInfo] globallyUniqueString];
-        NSURL *URL = [[[self class] URLForDataDirectory] URLByAppendingPathComponent:string];
-        [data writeToURL:URL atomically:NO];
+        
+        // gather all parameters
+        NSMutableDictionary *parameters = ([payload mutableCopy] ?: [NSMutableDictionary dictionary]);
+        parameters[@"timestamp"] = timeString;
+        parameters[@"app_key"] = _appKey;
+        parameters[@"device_id"] = [[self class] deviceIdentifier];
+        [attachments enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+            NSData *data = [NSJSONSerialization dataWithJSONObject:obj options:0 error:nil];
+            NSString *string = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+            if (data) { parameters[key] = string; }
+        }];
+        
+        // make sure we have something
+        if ([parameters count] == 0) { return; }
+        NSString *queryString = [[self class] queryStringWithParameters:parameters];
+        
+        // write to file
+        NSString *fileName = [[NSProcessInfo processInfo] globallyUniqueString];
+        NSURL *URL = [[[self class] URLForDataDirectory] URLByAppendingPathComponent:fileName];
+        [queryString writeToURL:URL atomically:NO encoding:NSUTF8StringEncoding error:nil];
         [self uploadItemAtURL:URL];
+        
     }];
     [operation setQueuePriority:NSOperationQueuePriorityHigh];
     [_queue addOperation:operation];
@@ -390,20 +383,13 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
                               stringWithContentsOfURL:itemURL
                               encoding:NSUTF8StringEncoding
                               error:nil];
-            MKLog(@"Starting upload of item: %@", item);
-            
-            // build query parameters
-            NSString *query = [NSString stringWithFormat:
-                               @"app_key=%@&device_id=%@&%@",
-                               _appKey,
-                               [[self class] deviceIdentifier],
-                               item];
+            MKLog(@"Starting upload of item: %@", [itemURL lastPathComponent]);
             
             // get the request url
             NSString *requestURLString = [NSString stringWithFormat:
                                           @"http://%@/i?%@",
                                           _host,
-                                          query];
+                                          item];
             NSURL *requestURL = [NSURL URLWithString:requestURLString];
             
             // run the request
