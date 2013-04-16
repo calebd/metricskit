@@ -18,7 +18,7 @@
 
 /**
  
- Log events.
+ Log events. Segmentation payloads should be string key/value pairs.
  
  */
 + (void)logEvent:(NSString *)key;

@@ -5,13 +5,6 @@
 //  Copyright (c) 2012 Caleb Davenport. All rights reserved.
 //
 
-#import <TargetConditionals.h>
-#import <sys/sysctl.h>
-#import <SystemConfiguration/SystemConfiguration.h>
-#import <CoreTelephony/CTTelephonyNetworkInfo.h>
-#import <CoreTelephony/CTCarrier.h>
-#import <UIKit/UIKit.h>
-
 #import "MetricsKit.h"
 #import "MetricsKitSession.h"
 

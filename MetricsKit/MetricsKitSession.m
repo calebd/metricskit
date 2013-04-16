@@ -291,6 +291,9 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
     if (sum) { payload[@"sum"] = sum; }
     if (segmentation) { payload[@"segmentation"] = segmentation; }
     [_events addObject:payload];
+    if (_timer == nil) {
+        [self persistAllEvents];
+    }
 }
 
 
@@ -310,6 +313,7 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
 
 
 - (void)startSession {
+    if (_timer) { return; }
     [self
      logPayload:@{
          @"sdk_version" : MetricsKitVersion,
@@ -329,6 +333,7 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
 
 
 - (void)endSession {
+    if (_timer == nil) { return; }
     [self logPayload:@{ @"end_session" : @"1" } withJSONAttachments:nil];
     [self persistAllEvents];
     [_timer invalidate];
@@ -372,6 +377,8 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
     
 }
 
+
+#pragma mark - - Post items
 
 - (void)uploadItemAtURL:(NSURL *)itemURL {
     [_queue addOperationWithBlock:^{
