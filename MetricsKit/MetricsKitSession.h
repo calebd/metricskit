@@ -12,8 +12,6 @@
 
 - (id)initWithAppKey:(NSString *)key host:(NSString *)host;
 
-- (void)logEvent:(NSString *)key segmentation:(NSDictionary *)segmentation count:(NSNumber *)count sum:(NSNumber *)sum;
-
-- (void)uploadItemAtURL:(NSURL *)itemURL;
+- (void)addEvent:(NSString *)key segmentation:(NSDictionary *)segmentation count:(NSNumber *)count sum:(NSNumber *)sum;
 
 @end

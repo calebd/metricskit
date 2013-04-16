@@ -267,7 +267,50 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
 }
 
 
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
+    if (context == &MetricsKitOperationCountContext) {
+        NSUInteger old = [[change objectForKey:NSKeyValueChangeOldKey] unsignedIntegerValue];
+        NSUInteger new = [[change objectForKey:NSKeyValueChangeNewKey] unsignedIntegerValue];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UIApplication *application = [UIApplication sharedApplication];
+            void (^endTask) (void) = ^{
+                UIBackgroundTaskIdentifier task = _task;
+                [application endBackgroundTask:task];
+                _task = UIBackgroundTaskInvalid;
+            };
+            if (old == 0 && new > 0 && _task == UIBackgroundTaskInvalid) {
+                [application beginBackgroundTaskWithExpirationHandler:endTask];
+            }
+            else if (old > 0 && new == 0 && _task != UIBackgroundTaskInvalid) {
+                endTask();
+            }
+        });
+    }
+    else {
+        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+    }
+}
+
+
+#pragma mark - Public
+
+- (void)addEvent:(NSString *)key segmentation:(NSDictionary *)segmentation count:(NSNumber *)count sum:(NSNumber *)sum {
+    NSMutableDictionary *payload = [NSMutableDictionary dictionaryWithCapacity:3];
+    payload[@"key"] = key;
+    if (count) { payload[@"count"] = count; }
+    if (sum) { payload[@"sum"] = sum; }
+    if (segmentation) { payload[@"segmentation"] = segmentation; }
+    [_events addObject:payload];
+}
+
+
 #pragma mark - Private
+
+- (void)persistAllEvents {
+    [self logPayload:nil withJSONAttachments:@{ @"events" : _events }];
+    [_events removeAllObjects];
+}
+
 
 - (void)timerFired {
     [self
@@ -319,14 +362,16 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
     // make sure we have something
     if ([parameters count] == 0) { return; }
     
-    // get query string
-    NSString *queryString = [[self class] queryStringWithParameters:parameters];
-    
     // write data to disk
     NSOperation *operation = [NSBlockOperation blockOperationWithBlock:^{
+        NSJSONWritingOptions options = 0;
+#if DEBUG
+        options = NSJSONWritingPrettyPrinted;
+#endif
+        NSData *data = [NSJSONSerialization dataWithJSONObject:parameters options:options error:nil];
         NSString *string = [[NSProcessInfo processInfo] globallyUniqueString];
         NSURL *URL = [[[self class] URLForDataDirectory] URLByAppendingPathComponent:string];
-        [queryString writeToURL:URL atomically:YES encoding:NSUTF8StringEncoding error:nil];
+        [data writeToURL:URL atomically:NO];
         [self uploadItemAtURL:URL];
     }];
     [operation setQueuePriority:NSOperationQueuePriorityHigh];
