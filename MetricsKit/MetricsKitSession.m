@@ -128,7 +128,7 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
         static NSString * const key = @"me.calebd.MetricsKit.DeviceIdentifier";
         identifier = [userDefaults objectForKey:key];
         if (identifier == nil) {
-            NSString *identifier = [[NSProcessInfo processInfo] globallyUniqueString];
+            identifier = [[NSProcessInfo processInfo] globallyUniqueString];
             [userDefaults setObject:identifier forKey:key];
         }
     });
