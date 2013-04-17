@@ -7,6 +7,14 @@ Clean Objective-C SDK for [Count.ly](http://count.ly).
 - Simple public API
 - Compiles with ARC
 - Saves event payloads on disk until they are successfully posted
+- Can be installed directly from source or as a static library
+
+## Requirements
+
+- ARC
+- `CoreTelephony.framework`
+- `SystemConfiguration.framework`
+- `UIKit.framework`
 
 ## Application Launch
 
@@ -14,11 +22,11 @@ Clean Objective-C SDK for [Count.ly](http://count.ly).
 
 ## Log an Event
 
-    [MetricsKit logEvent:@"Event Name" count:1];
+    [MetricsKit logEvent:@"Event Name"];
 
 # License
 
-Copyright (c) 2012 Caleb Davenport.
+Copyright (c) 2012-2013 Caleb Davenport.
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
