@@ -9,21 +9,21 @@
 
 @interface MetricsKit : NSObject
 
-/*
+/**
  
  Start a Countly session at the given host with the given app token.
  
  */
 + (void)startWithAppKey:(NSString *)key host:(NSString *)host;
 
-/*
+/**
  
- Log events.
+ Log events. Segmentation payloads should be string key/value pairs.
  
  */
++ (void)logEvent:(NSString *)key;
 + (void)logEvent:(NSString *)key count:(int)count;
-+ (void)logEvent:(NSString *)key count:(int)count sum:(double)sum;
++ (void)logEvent:(NSString *)key segmentation:(NSDictionary *)segmentation;
 + (void)logEvent:(NSString *)key segmentation:(NSDictionary *)segmentation count:(int)count;
-+ (void)logEvent:(NSString *)key segmentation:(NSDictionary *)segmentation count:(int)count sum:(double)sum;
 
 @end
