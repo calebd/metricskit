@@ -196,6 +196,7 @@ void MetricsKitReachabilityDidChange(SCNetworkReachabilityRef reachability, SCNe
         
         // operation queue
         _queue = [[NSOperationQueue alloc] init];
+        [_queue setMaxConcurrentOperationCount:3];
         [_queue setName:[NSString stringWithFormat:
                          @"me.calebd.MetricsKit.Session.%p",
                          self]];
